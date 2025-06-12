@@ -196,3 +196,61 @@ insertBooks().catch(console.error);
  * 5. Find in-stock books:
  *    db.books.find({ in_stock: true })
  */ 
+
+// 1. Average price by genre
+print("Average price by genre:");
+db.books.aggregate([
+  { 
+    $group: { 
+      _id: "$genre", 
+      averagePrice: { $avg: "$price" } 
+    } 
+  }
+]);
+
+// 2. Author with most books
+print("\nAuthor with most books:");
+db.books.aggregate([
+  { 
+    $group: { 
+      _id: "$author", 
+      totalBooks: { $sum: 1 } 
+    } 
+  },
+  { $sort: { totalBooks: -1 } },
+  { $limit: 1 }
+]);
+
+// 3. Books count by publication decade (e.g., 2020s, 2010s)
+print("\nBooks count by decade:");
+db.books.aggregate([
+  {
+    $project: {
+      decade: {
+        $subtract: [
+          "$published_year",
+          { $mod: ["$published_year", 10] }
+        ]
+      }
+    }
+  },
+  {
+    $group: {
+      _id: "$decade",
+      count: { $sum: 1 }
+    }
+  },
+  { $sort: { _id: 1 } }
+]);
+
+// 1. Create single index on 'title'
+print("\nCreating index on 'title'...");
+db.books.createIndex({ title: 1 });
+
+// 2. Create compound index on 'author' and 'published_year'
+print("\nCreating compound index on 'author' and 'published_year'...");
+db.books.createIndex({ author: 1, published_year: 1 });
+
+// 3. Test performance with explain()
+print("\nTesting index performance for title search:");
+db.books.find({ title: "The Great Gatsby" }).explain("executionStats");
